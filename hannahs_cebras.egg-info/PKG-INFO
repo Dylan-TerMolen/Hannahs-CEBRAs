@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: hannahs-cebras
+Version: 0.1.0
+Summary: CEBRA-based neural decoding tools for condition and position decoding
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: scikit-learn
+Requires-Dist: cebra
+Requires-Dist: torch
+Requires-Dist: matplotlib
+Requires-Dist: seaborn
+Requires-Dist: pandas
+Requires-Dist: joblib
+Dynamic: license-file
+
+# Hannahs-CEBRAs
+code for running CEBRA

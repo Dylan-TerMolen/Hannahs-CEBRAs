@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hannahs-cebras"
+version = "0.1.0"
+description = "CEBRA-based neural decoding tools for condition and position decoding"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "scikit-learn",
+    "cebra",
+    "torch",
+    "matplotlib",
+    "seaborn",
+    "pandas",
+    "joblib",
+]
+
+[tool.setuptools.packages.find]
+include = ["hannahs_cebras*"]
