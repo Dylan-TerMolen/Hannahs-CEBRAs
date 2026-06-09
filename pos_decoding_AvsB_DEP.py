@@ -17,8 +17,14 @@ from matplotlib.collections import LineCollection
 from pos_score import pos_score
 import gc
 import logging
+import sys
 
 logger = logging.getLogger(__name__)
+if not logger.handlers:
+    _h = logging.StreamHandler(sys.stdout)
+    _h.setFormatter(logging.Formatter('[%(name)s] %(message)s'))
+    logger.addHandler(_h)
+    logger.setLevel(logging.INFO)
 
 
 def _unpack(v):
@@ -53,7 +59,7 @@ def pos_decoding_AvsB_dep(cell_traceA, posA, cell_traceB, posB, percent_to_train
                             num_hidden_units = 32,
                             time_offsets = 1,
                             #hybrid=True, #added <-- if using time
-                            verbose=False)
+                            verbose=True)
 
     logger.info("Initializing shuffle CEBRA model")
     shuff_model =  CEBRA(model_architecture='offset10-model',
@@ -72,7 +78,7 @@ def pos_decoding_AvsB_dep(cell_traceA, posA, cell_traceB, posB, percent_to_train
                         num_hidden_units = 32,
                         time_offsets = 1,
                         #hybrid=True, #added <-- if using time
-                        verbose=False)
+                        verbose=True)
 
     ########################
     #TEST
@@ -93,7 +99,9 @@ def pos_decoding_AvsB_dep(cell_traceA, posA, cell_traceB, posB, percent_to_train
         pos_trainA, pos_testA = hold_out(posA, percent_to_train)
         logger.info(f"[{i+1}]   cell_trainA: {np.array(cell_trainA).shape}, cell_testA: {np.array(cell_testA).shape}")
 
-        logger.info(f"[{i+1}] Fitting CEBRA model on envA")
+        fit_base = (i * 3) + 1
+        total_fits = NUM_POS_DECODING_REPS * 3
+        logger.info(f"[{i+1}] Stage {fit_base}/{total_fits} — Fitting CEBRA on envA (position)")
         cebra_loc_modelA = sklearn.base.clone(cebra_loc_model).fit(cell_trainA, pos_trainA) #training on A
         cebra_loc_trainA = cebra_loc_modelA.transform(cell_trainA)
         cebra_loc_testA = cebra_loc_modelA.transform(cell_testA)
@@ -113,7 +121,7 @@ def pos_decoding_AvsB_dep(cell_traceA, posA, cell_traceB, posB, percent_to_train
         for column in range(pos_train_shuffA.shape[1]):
             np.random.shuffle(pos_train_shuffA[:, column])
 
-        logger.info(f"[{i+1}] Fitting CEBRA model on shuffled envA position labels")
+        logger.info(f"[{i+1}] Stage {fit_base + 1}/{total_fits} — Fitting CEBRA on envA (shuffled position)")
         shuff_modelA = sklearn.base.clone(cebra_loc_model).fit(cell_trainA, pos_train_shuffA) #training on shuffled A
         cebra_loc_train_shuffA = shuff_modelA.transform(cell_trainA)
         cebra_loc_test_shuffA = shuff_modelA.transform(cell_testA)
@@ -127,7 +135,7 @@ def pos_decoding_AvsB_dep(cell_traceA, posA, cell_traceB, posB, percent_to_train
 
 
         #then sanity check use B to decode B
-        logger.info(f"[{i+1}] Sanity check: fitting envB model (B->B)")
+        logger.info(f"[{i+1}] Stage {fit_base + 2}/{total_fits} — Fitting CEBRA on envB (position)")
         cell_trainB, cell_testB = hold_out(cell_traceB, percent_to_train)
         pos_trainB, pos_testB = hold_out(posB, percent_to_train)
 
