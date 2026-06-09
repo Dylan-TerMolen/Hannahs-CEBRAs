@@ -16,7 +16,14 @@ from matplotlib.collections import LineCollection
 from CSUS_score import CSUS_score
 from hold_out import hold_out
 import gc
-import logger
+import logging
+
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    _h = logging.StreamHandler(sys.stdout)
+    _h.setFormatter(logging.Formatter('[%(name)s] %(message)s'))
+    logger.addHandler(_h)
+    logger.setLevel(logging.INFO)
 
 
 
