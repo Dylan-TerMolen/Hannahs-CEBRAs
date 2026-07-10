@@ -72,6 +72,8 @@ def cond_decoding_AvsB(envA_cell_train, envB_cell_train, envA_eyeblink, envB_eye
 
     fract_control_all = []
     fract_test_all = []
+    fract_shuff_control_all = []
+    fract_shuff_test_all = []
 
     total_fits = NUM_COND_DECODING_REPS * 2
     logger.info(f"Beginning {NUM_COND_DECODING_REPS} conditioning decoding repetitions ({total_fits} CEBRA fits total)")
@@ -92,34 +94,42 @@ def cond_decoding_AvsB(envA_cell_train, envB_cell_train, envA_eyeblink, envB_eye
           fract_controlA = CSUS_score(cebra_loc_train22, cebra_loc_test22, eyeblink_train_control, eyeblink_test_control)
           logger.info(f"[{i+1}] A->A CSUS score: {fract_controlA:.4f}")
 
-          cell_test = envB_cell_train
-          eyeblink_test_control = envB_eyeblink
-          cebra_loc_test22 = cebra_loc_modelpos.transform(cell_test)
-          fract_testB = CSUS_score(cebra_loc_train22, cebra_loc_test22, eyeblink_train_control, eyeblink_test_control)
+          cebra_loc_testB = cebra_loc_modelpos.transform(envB_cell_train)
+          fract_testB = CSUS_score(cebra_loc_train22, cebra_loc_testB, eyeblink_train_control, envB_eyeblink)
           logger.info(f"[{i+1}] A->B CSUS score: {fract_testB:.4f}")
 
           EB_shuff = np.array(envA_eyeblink).copy()
           np.random.shuffle(EB_shuff[:])
-          eyeblink_train_control, eyeblink_test_control = hold_out(EB_shuff, .75)
-          cell_train_control, cell_test_control = hold_out(envA_cell_train, .75)
+          eyeblink_train_shuff, eyeblink_test_shuff = hold_out(EB_shuff, .75)
+          cell_train_shuff, cell_test_shuff = hold_out(envA_cell_train, .75)
 
           logger.info(f"[{i+1}] Stage {fit_base + 1}/{total_fits} — Fitting CEBRA on envA (shuffled task labels)")
-          cebra_loc_modelpos = sklearn.base.clone(cebra_loc_model).fit(cell_train_control, eyeblink_train_control)
-          cebra_loc_train22 = cebra_loc_modelpos.transform(cell_train_control)
-          cebra_loc_test22 = cebra_loc_modelpos.transform(cell_test_control)
+          shuff_model = sklearn.base.clone(cebra_loc_model).fit(cell_train_shuff, eyeblink_train_shuff)
+          cebra_loc_train_shuff = shuff_model.transform(cell_train_shuff)
+          cebra_loc_test_shuff = shuff_model.transform(cell_test_shuff)
 
-          fract_controlA = CSUS_score(cebra_loc_train22, cebra_loc_test22, eyeblink_train_control, eyeblink_test_control)
-          logger.info(f"[{i+1}] Shuffled A->A CSUS score: {fract_controlA:.4f}")
+          fract_shuff_controlA = CSUS_score(cebra_loc_train_shuff, cebra_loc_test_shuff, eyeblink_train_shuff, eyeblink_test_shuff)
+          logger.info(f"[{i+1}] Shuffled A->A CSUS score: {fract_shuff_controlA:.4f}")
+
+          cebra_loc_test_shuffB = shuff_model.transform(envB_cell_train)
+          fract_shuff_testB = CSUS_score(cebra_loc_train_shuff, cebra_loc_test_shuffB, eyeblink_train_shuff, envB_eyeblink)
+          logger.info(f"[{i+1}] Shuffled A->B CSUS score: {fract_shuff_testB:.4f}")
 
           fract_control_all.append(fract_controlA)
           fract_test_all.append(fract_testB)
-          logger.info(f"[{i+1}] Running totals — control: {fract_control_all}, test: {fract_test_all}")
+          fract_shuff_control_all.append(fract_shuff_controlA)
+          fract_shuff_test_all.append(fract_shuff_testB)
+          logger.info(f"[{i+1}] Running totals — control: {fract_control_all}, test: {fract_test_all}, "
+                      f"shuff_control: {fract_shuff_control_all}, shuff_test: {fract_shuff_test_all}")
 
     logger.info(f"All {NUM_COND_DECODING_REPS} repetitions complete. Cleaning up memory.")
-    del cebra_loc_modelpos, cebra_loc_train22, cebra_loc_test22
+    del cebra_loc_modelpos, cebra_loc_train22, cebra_loc_test22, cebra_loc_testB
+    del shuff_model, cebra_loc_train_shuff, cebra_loc_test_shuff, cebra_loc_test_shuffB
     gc.collect()
 
     logger.info(f"Final fract_control_all: {fract_control_all}")
     logger.info(f"Final fract_test_all: {fract_test_all}")
+    logger.info(f"Final fract_shuff_control_all: {fract_shuff_control_all}")
+    logger.info(f"Final fract_shuff_test_all: {fract_shuff_test_all}")
 
-    return fract_control_all, fract_test_all
+    return fract_control_all, fract_test_all, fract_shuff_control_all, fract_shuff_test_all
