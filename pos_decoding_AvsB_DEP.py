@@ -85,10 +85,10 @@ def pos_decoding_AvsB_dep(cell_traceA, posA, cell_traceB, posB, percent_to_train
 
 
 
-    err_allA = [] * 4
-    err_allB_usingA = [] * 4
-    err_all_shuffB_usingA = [] * 4
-    err_allB_usingB = [] * 4
+    place_a_to_a = [] * 4
+    place_a_to_b = [] * 4
+    place_shuffled_a_to_b = [] * 4
+    place_b_to_b = [] * 4
 
     logger.info(f"Beginning {NUM_POS_DECODING_REPS} position decoding repetition(s)")
     for i in range(NUM_POS_DECODING_REPS):
@@ -145,20 +145,20 @@ def pos_decoding_AvsB_dep(cell_traceA, posA, cell_traceB, posB, percent_to_train
 
         pos_test_scoreB, pos_test_errB, dis_meanB, dis_medianB = pos_score(cebra_loc_trainB, cebra_loc_testB, pos_trainB, pos_testB)
         logger.info(f"[{i+1}] B->B: score={np.mean(pos_test_scoreB):.4f}, err={np.mean(pos_test_errB):.4f}")
-        # For err_allA
-        err_allA = _unpack(pos_test_scoreA), _unpack(pos_test_errA), _unpack(dis_meanA), _unpack(dis_medianA)
+        # For place_a_to_a
+        place_a_to_a = _unpack(pos_test_scoreA), _unpack(pos_test_errA), _unpack(dis_meanA), _unpack(dis_medianA)
 
-        # For err_allB_usingA
-        err_allB_usingA = _unpack(pos_test_scoreBwA), _unpack(pos_test_errBwA), _unpack(dis_meanBwA), _unpack(dis_medianBwA)
+        # For place_a_to_b
+        place_a_to_b = _unpack(pos_test_scoreBwA), _unpack(pos_test_errBwA), _unpack(dis_meanBwA), _unpack(dis_medianBwA)
 
-        # For err_all_shuffA
-        err_all_shuffA = _unpack(pos_test_score_shuffA), _unpack(pos_test_err_shuffA), _unpack(dis_mean_shuffA), _unpack(dis_median_shuffA)
+        # For place_shuffled_a_to_a
+        place_shuffled_a_to_a = _unpack(pos_test_score_shuffA), _unpack(pos_test_err_shuffA), _unpack(dis_mean_shuffA), _unpack(dis_median_shuffA)
 
-        # For err_all_shuffB_usingA
-        err_all_shuffB_usingA = _unpack(pos_test_score_shuffB), _unpack(pos_test_err_shuffB), _unpack(dis_mean_shuffB), _unpack(dis_median_shuffB)
+        # For place_shuffled_a_to_b
+        place_shuffled_a_to_b = _unpack(pos_test_score_shuffB), _unpack(pos_test_err_shuffB), _unpack(dis_mean_shuffB), _unpack(dis_median_shuffB)
 
-        # For err_allB_usingB
-        err_allB_usingB = _unpack(pos_test_scoreB), _unpack(pos_test_errB), _unpack(dis_meanB), _unpack(dis_medianB)
+        # For place_b_to_b
+        place_b_to_b = _unpack(pos_test_scoreB), _unpack(pos_test_errB), _unpack(dis_meanB), _unpack(dis_medianB)
 
 
     logger.info(f"Summary | A->A: {np.mean(pos_test_scoreA):.4f}, A->B: {np.mean(pos_test_scoreBwA):.4f}, "
@@ -175,4 +175,4 @@ def pos_decoding_AvsB_dep(cell_traceA, posA, cell_traceB, posB, percent_to_train
     gc.collect()
     logger.info("Done. Returning results.")
 
-    return err_allA, err_allB_usingA, err_all_shuffA, err_all_shuffB_usingA, err_allB_usingB
+    return place_a_to_a, place_a_to_b, place_shuffled_a_to_a, place_shuffled_a_to_b, place_b_to_b

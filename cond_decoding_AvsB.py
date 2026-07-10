@@ -70,10 +70,10 @@ def cond_decoding_AvsB(envA_cell_train, envB_cell_train, envA_eyeblink, envB_eye
                         time_offsets = 1,
                         verbose=True)
 
-    fract_control_all = []
-    fract_test_all = []
-    fract_shuff_control_all = []
-    fract_shuff_test_all = []
+    task_a_to_a = []
+    task_a_to_b = []
+    task_shuffled_a_to_a = []
+    task_shuffled_a_to_b = []
 
     total_fits = NUM_COND_DECODING_REPS * 2
     logger.info(f"Beginning {NUM_COND_DECODING_REPS} conditioning decoding repetitions ({total_fits} CEBRA fits total)")
@@ -91,12 +91,12 @@ def cond_decoding_AvsB(envA_cell_train, envB_cell_train, envA_eyeblink, envB_eye
           cebra_loc_train22 = cebra_loc_modelpos.transform(cell_train_control)
           cebra_loc_test22 = cebra_loc_modelpos.transform(cell_test_control)
 
-          fract_controlA = CSUS_score(cebra_loc_train22, cebra_loc_test22, eyeblink_train_control, eyeblink_test_control)
-          logger.info(f"[{i+1}] A->A CSUS score: {fract_controlA:.4f}")
+          a_to_a = CSUS_score(cebra_loc_train22, cebra_loc_test22, eyeblink_train_control, eyeblink_test_control)
+          logger.info(f"[{i+1}] A->A CSUS score: {a_to_a:.4f}")
 
           cebra_loc_testB = cebra_loc_modelpos.transform(envB_cell_train)
-          fract_testB = CSUS_score(cebra_loc_train22, cebra_loc_testB, eyeblink_train_control, envB_eyeblink)
-          logger.info(f"[{i+1}] A->B CSUS score: {fract_testB:.4f}")
+          a_to_b = CSUS_score(cebra_loc_train22, cebra_loc_testB, eyeblink_train_control, envB_eyeblink)
+          logger.info(f"[{i+1}] A->B CSUS score: {a_to_b:.4f}")
 
           EB_shuff = np.array(envA_eyeblink).copy()
           np.random.shuffle(EB_shuff[:])
@@ -108,28 +108,28 @@ def cond_decoding_AvsB(envA_cell_train, envB_cell_train, envA_eyeblink, envB_eye
           cebra_loc_train_shuff = shuff_model.transform(cell_train_shuff)
           cebra_loc_test_shuff = shuff_model.transform(cell_test_shuff)
 
-          fract_shuff_controlA = CSUS_score(cebra_loc_train_shuff, cebra_loc_test_shuff, eyeblink_train_shuff, eyeblink_test_shuff)
-          logger.info(f"[{i+1}] Shuffled A->A CSUS score: {fract_shuff_controlA:.4f}")
+          shuffled_a_to_a = CSUS_score(cebra_loc_train_shuff, cebra_loc_test_shuff, eyeblink_train_shuff, eyeblink_test_shuff)
+          logger.info(f"[{i+1}] Shuffled A->A CSUS score: {shuffled_a_to_a:.4f}")
 
           cebra_loc_test_shuffB = shuff_model.transform(envB_cell_train)
-          fract_shuff_testB = CSUS_score(cebra_loc_train_shuff, cebra_loc_test_shuffB, eyeblink_train_shuff, envB_eyeblink)
-          logger.info(f"[{i+1}] Shuffled A->B CSUS score: {fract_shuff_testB:.4f}")
+          shuffled_a_to_b = CSUS_score(cebra_loc_train_shuff, cebra_loc_test_shuffB, eyeblink_train_shuff, envB_eyeblink)
+          logger.info(f"[{i+1}] Shuffled A->B CSUS score: {shuffled_a_to_b:.4f}")
 
-          fract_control_all.append(fract_controlA)
-          fract_test_all.append(fract_testB)
-          fract_shuff_control_all.append(fract_shuff_controlA)
-          fract_shuff_test_all.append(fract_shuff_testB)
-          logger.info(f"[{i+1}] Running totals — control: {fract_control_all}, test: {fract_test_all}, "
-                      f"shuff_control: {fract_shuff_control_all}, shuff_test: {fract_shuff_test_all}")
+          task_a_to_a.append(a_to_a)
+          task_a_to_b.append(a_to_b)
+          task_shuffled_a_to_a.append(shuffled_a_to_a)
+          task_shuffled_a_to_b.append(shuffled_a_to_b)
+          logger.info(f"[{i+1}] Running totals — control: {task_a_to_a}, test: {task_a_to_b}, "
+                      f"shuff_control: {task_shuffled_a_to_a}, shuff_test: {task_shuffled_a_to_b}")
 
     logger.info(f"All {NUM_COND_DECODING_REPS} repetitions complete. Cleaning up memory.")
     del cebra_loc_modelpos, cebra_loc_train22, cebra_loc_test22, cebra_loc_testB
     del shuff_model, cebra_loc_train_shuff, cebra_loc_test_shuff, cebra_loc_test_shuffB
     gc.collect()
 
-    logger.info(f"Final fract_control_all: {fract_control_all}")
-    logger.info(f"Final fract_test_all: {fract_test_all}")
-    logger.info(f"Final fract_shuff_control_all: {fract_shuff_control_all}")
-    logger.info(f"Final fract_shuff_test_all: {fract_shuff_test_all}")
+    logger.info(f"Final task_a_to_a: {task_a_to_a}")
+    logger.info(f"Final task_a_to_b: {task_a_to_b}")
+    logger.info(f"Final task_shuffled_a_to_a: {task_shuffled_a_to_a}")
+    logger.info(f"Final task_shuffled_a_to_b: {task_shuffled_a_to_b}")
 
-    return fract_control_all, fract_test_all, fract_shuff_control_all, fract_shuff_test_all
+    return task_a_to_a, task_a_to_b, task_shuffled_a_to_a, task_shuffled_a_to_b
