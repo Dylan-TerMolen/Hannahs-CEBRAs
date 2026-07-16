@@ -15,6 +15,7 @@ import pandas as pd
 import joblib as jl
 from matplotlib.collections import LineCollection
 from pos_score import pos_score
+from cebra_config import merge_cebra_params
 import gc
 import logging
 import sys
@@ -36,49 +37,33 @@ def _unpack(v):
 
 NUM_POS_DECODING_REPS = 2
 
-def pos_decoding_AvsB_dep(cell_traceA, posA, cell_traceB, posB, percent_to_train):
+# Tuned defaults for cross-environment position decoding. Any subset may be
+# overridden per run via the `cebra_params` argument (e.g. from the CLI grid search).
+POS_CEBRA_DEFAULTS = dict(
+    model_architecture='offset10-model',
+    batch_size=512,
+    learning_rate=5.5e-5,
+    temperature_mode='auto',
+    output_dimension=2,
+    max_iterations=8000,
+    distance='cosine',
+    conditional='time_delta',
+    device='cuda_if_available',
+    num_hidden_units=32,
+    time_offsets=1,
+    verbose=True,
+)
+
+
+def pos_decoding_AvsB_dep(cell_traceA, posA, cell_traceB, posB, percent_to_train, cebra_params=None):
 
     logger.info(f"Starting. cell_traceA: {np.array(cell_traceA).shape}, posA: {np.array(posA).shape}")
     logger.info(f"cell_traceB: {np.array(cell_traceB).shape}, posB: {np.array(posB).shape}, percent_to_train: {percent_to_train}")
 
-    output_dimension = 2 #here, we set as a variable for hypothesis testing below.
-    logger.info(f"Initializing CEBRA model (output_dim={output_dimension}, max_iter=8000, lr=5e-6)")
-    cebra_loc_model = CEBRA(model_architecture='offset10-model',
-                            batch_size=512,
-                            #learning_rate= 3e-4,
-                            learning_rate= 5.5e-5,
-                            #temperature = 2,
-                            temperature_mode = 'auto',
-                            #min_temperature = .74,
-                            output_dimension=output_dimension,
-                            max_iterations=8000,
-                            #max_iterations=8000,
-                            distance='cosine',
-                            conditional='time_delta', #added, keep
-                            device='cuda_if_available',
-                            num_hidden_units = 32,
-                            time_offsets = 1,
-                            #hybrid=True, #added <-- if using time
-                            verbose=True)
-
-    logger.info("Initializing shuffle CEBRA model")
-    shuff_model =  CEBRA(model_architecture='offset10-model',
-                        batch_size=512,
-                        #learning_rate= 3e-4,
-                        learning_rate= 5.5e-5,
-                        #temperature = 2,
-                        temperature_mode = 'auto',
-                        #min_temperature = .74,
-                        output_dimension=output_dimension,
-                        max_iterations=8000,
-                        #max_iterations=8000,
-                        distance='cosine',
-                        conditional='time_delta', #added, keep
-                        device='cuda_if_available',
-                        num_hidden_units = 32,
-                        time_offsets = 1,
-                        #hybrid=True, #added <-- if using time
-                        verbose=True)
+    params = merge_cebra_params(POS_CEBRA_DEFAULTS, cebra_params)
+    logger.info(f"Initializing CEBRA models with params: {params}")
+    cebra_loc_model = CEBRA(**params)
+    shuff_model = CEBRA(**params)
 
     ########################
     #TEST

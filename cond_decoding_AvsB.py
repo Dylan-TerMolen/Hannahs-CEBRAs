@@ -15,6 +15,7 @@ import joblib as jl
 from matplotlib.collections import LineCollection
 from CSUS_score import CSUS_score
 from hold_out import hold_out
+from cebra_config import merge_cebra_params
 import gc
 import logging
 
@@ -29,46 +30,36 @@ if not logger.handlers:
 
 NUM_COND_DECODING_REPS = 2
 
+# Tuned defaults for cross-environment task/eyeblink decoding. Any subset may be
+# overridden per run via the `cebra_params` argument (e.g. from the CLI grid search).
+COND_CEBRA_DEFAULTS = dict(
+    model_architecture='offset10-model',
+    batch_size=512,
+    learning_rate=8.6e-4,
+    temperature_mode='auto',
+    min_temperature=.2,
+    output_dimension=2,
+    max_iterations=8000,
+    distance='cosine',
+    conditional='time_delta',
+    device='cuda_if_available',
+    num_hidden_units=32,
+    time_offsets=1,
+    verbose=True,
+)
+
 #decodes conditioning in envB using envA.
 #Outputs percent correct in envA after being trained in env A(based on a 75/25 split)
 #Outputs percent correct in envB using the model trained in envA
 
 
-def cond_decoding_AvsB(envA_cell_train, envB_cell_train, envA_eyeblink, envB_eyeblink, dimensions=2):
-    dimensions = 2
+def cond_decoding_AvsB(envA_cell_train, envB_cell_train, envA_eyeblink, envB_eyeblink, cebra_params=None):
     logger.info(f"Starting. envA cells: {np.array(envA_cell_train).shape}, envB cells: {np.array(envB_cell_train).shape}")
-    logger.info(f"envA eyeblink: {np.array(envA_eyeblink).shape}, envB eyeblink: {np.array(envB_eyeblink).shape}, dimensions: {dimensions}")
+    logger.info(f"envA eyeblink: {np.array(envA_eyeblink).shape}, envB eyeblink: {np.array(envB_eyeblink).shape}")
 
-    output_dimension = dimensions
-    logger.info(f"Initializing CEBRA model (output_dim={output_dimension}, max_iter=8000, lr=8.6e-4)")
-#     cebra_loc_model = CEBRA(model_architecture='offset10-model',
-#                             batch_size=512,
-#                             #learning_rate= .046,
-#                             learning_rate= 4.5e-07,
-#                             temperature_mode = 'auto',
-#                             min_temperature = .25,
-#                             output_dimension=3,
-#                             max_iterations= 15000, #15000, #<--------------1-20000 # Lowered this from 14000 for testing locally
-#                             distance='euclidean',
-#                             conditional='time_delta', #added, keep
-#                             device='cuda_if_available',
-#                             num_hidden_units = 32,
-#                             time_offsets = 1,
-#                             verbose='true')
-
-    cebra_loc_model = CEBRA(model_architecture='offset10-model',
-                        batch_size=512,
-                        learning_rate= 8.6e-4,
-                        temperature_mode = 'auto',
-                        min_temperature = .2,
-                        output_dimension=output_dimension,
-                        max_iterations=8000, 
-                        distance='cosine',
-                        conditional='time_delta', #added, keep
-                        device='cuda_if_available',
-                        num_hidden_units = 32,
-                        time_offsets = 1,
-                        verbose=True)
+    params = merge_cebra_params(COND_CEBRA_DEFAULTS, cebra_params)
+    logger.info(f"Initializing CEBRA model with params: {params}")
+    cebra_loc_model = CEBRA(**params)
 
     task_a_to_a = []
     task_a_to_b = []
