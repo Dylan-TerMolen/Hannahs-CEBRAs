@@ -65,12 +65,13 @@ def cond_decoding_AvsB(envA_cell_train, envB_cell_train, envA_eyeblink, envB_eye
     task_a_to_b = []
     task_shuffled_a_to_a = []
     task_shuffled_a_to_b = []
+    task_b_to_b = []
 
-    total_fits = NUM_COND_DECODING_REPS * 2
+    total_fits = NUM_COND_DECODING_REPS * 3
     logger.info(f"Beginning {NUM_COND_DECODING_REPS} conditioning decoding repetitions ({total_fits} CEBRA fits total)")
 
     for i in range(NUM_COND_DECODING_REPS):
-          fit_base = (i * 2) + 1
+          fit_base = (i * 3) + 1
           logger.info(f"--- Repetition {i+1}/{NUM_COND_DECODING_REPS} ---")
 
           eyeblink_train_control, eyeblink_test_control = hold_out(envA_eyeblink, .75)
@@ -106,21 +107,36 @@ def cond_decoding_AvsB(envA_cell_train, envB_cell_train, envA_eyeblink, envB_eye
           shuffled_a_to_b = CSUS_score(cebra_loc_train_shuff, cebra_loc_test_shuffB, eyeblink_train_shuff, envB_eyeblink)
           logger.info(f"[{i+1}] Shuffled A->B CSUS score: {shuffled_a_to_b:.4f}")
 
+          eyeblink_trainB, eyeblink_testB = hold_out(envB_eyeblink, .75)
+          cell_trainB, cell_testB = hold_out(envB_cell_train, .75)
+
+          logger.info(f"[{i+1}] Stage {fit_base + 2}/{total_fits} — Fitting CEBRA on envB (task/eyeblink)")
+          cebra_loc_modelB = sklearn.base.clone(cebra_loc_model).fit(cell_trainB, eyeblink_trainB)
+          cebra_loc_trainBB = cebra_loc_modelB.transform(cell_trainB)
+          cebra_loc_testBB = cebra_loc_modelB.transform(cell_testB)
+
+          b_to_b = CSUS_score(cebra_loc_trainBB, cebra_loc_testBB, eyeblink_trainB, eyeblink_testB)
+          logger.info(f"[{i+1}] B->B CSUS score: {b_to_b:.4f}")
+
           task_a_to_a.append(a_to_a)
           task_a_to_b.append(a_to_b)
           task_shuffled_a_to_a.append(shuffled_a_to_a)
           task_shuffled_a_to_b.append(shuffled_a_to_b)
+          task_b_to_b.append(b_to_b)
           logger.info(f"[{i+1}] Running totals — control: {task_a_to_a}, test: {task_a_to_b}, "
-                      f"shuff_control: {task_shuffled_a_to_a}, shuff_test: {task_shuffled_a_to_b}")
+                      f"shuff_control: {task_shuffled_a_to_a}, shuff_test: {task_shuffled_a_to_b}, "
+                      f"b_to_b: {task_b_to_b}")
 
     logger.info(f"All {NUM_COND_DECODING_REPS} repetitions complete. Cleaning up memory.")
     del cebra_loc_modelpos, cebra_loc_train22, cebra_loc_test22, cebra_loc_testB
     del shuff_model, cebra_loc_train_shuff, cebra_loc_test_shuff, cebra_loc_test_shuffB
+    del cebra_loc_modelB, cebra_loc_trainBB, cebra_loc_testBB
     gc.collect()
 
     logger.info(f"Final task_a_to_a: {task_a_to_a}")
     logger.info(f"Final task_a_to_b: {task_a_to_b}")
     logger.info(f"Final task_shuffled_a_to_a: {task_shuffled_a_to_a}")
     logger.info(f"Final task_shuffled_a_to_b: {task_shuffled_a_to_b}")
+    logger.info(f"Final task_b_to_b: {task_b_to_b}")
 
-    return task_a_to_a, task_a_to_b, task_shuffled_a_to_a, task_shuffled_a_to_b
+    return task_a_to_a, task_a_to_b, task_shuffled_a_to_a, task_shuffled_a_to_b, task_b_to_b

@@ -103,4 +103,4 @@ elif how_many_divisions == 5:
 dimensions = how_many_divisions + args.pretrial_y_or_n
 
 # Running the conditional decoding function
-fract_control_all, fract_test_all, _, _ = cond_decoding_AvsB(traceA, traceB, trainingA, trainingB, dimensions)
+fract_control_all, fract_test_all, _, _, _ = cond_decoding_AvsB(traceA, traceB, trainingA, trainingB, dimensions)
