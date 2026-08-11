@@ -45,3 +45,36 @@ def pos_score(emb_train, emb_test, label_train, label_test, n_neighbors=36):
 
 
     return pos_test_score, pos_test_err, dis_mean, dis_median
+
+
+def _score_position_subset(prediction, label_test, mask):
+    """R^2 and mean Euclidean-distance (cm) error over a boolean subset of a
+    test set, or (None, None) if the subset is empty."""
+    if not np.any(mask):
+        return None, None
+    predicted_subset = prediction[mask]
+    actual_subset = label_test[mask]
+    r2 = sklearn.metrics.r2_score(actual_subset, predicted_subset)
+    distances = np.sqrt(np.sum((predicted_subset - actual_subset) ** 2, axis=1))
+    cm_error = np.mean(distances)
+    return r2, cm_error
+
+
+def pos_score_by_task_state(emb_train, emb_test, label_train, label_test, in_task_test, n_neighbors=36):
+    """Like pos_score, but scores the kNN decoder's test predictions separately
+    for in-task and out-of-task rows.
+
+    in_task_test: boolean mask aligned to emb_test/label_test, True where the
+    rat was in-task (CS/trace/US trial) at that row.
+
+    Returns {"in_task": (r2, cm_error), "out_of_task": (r2, cm_error)}.
+    """
+    pos_decoder = cebra.KNNDecoder(n_neighbors, metric='euclidean')
+    pos_decoder.fit(emb_train, label_train)
+    prediction = pos_decoder.predict(emb_test)
+
+    in_task_test = np.asarray(in_task_test)
+    return {
+        "in_task": _score_position_subset(prediction, label_test, in_task_test),
+        "out_of_task": _score_position_subset(prediction, label_test, ~in_task_test),
+    }
